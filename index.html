@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>莫斯科互动地图 - Интерактивная карта Москвы</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+  <style>
+  </style>
+</head>
+<body>
+<div id="header">
+  <h1>莫斯科互动地图 - Интерактивная карта Москвы</h1>
+  <p>探索俄罗斯首都的著名地标和景点 - Исследуйте достопримечательности столицы России</p>
+  <div class="language-switcher">
+    <button class="lang-btn active" onclick="switchLanguage('zh')">中文</button>
+    <button class="lang-btn" onclick="switchLanguage('ru')">Русский</button>
+  </div>
+</div>
+
+<div id="map-container">
+  <div id="map"></div>
+  <div id="sidebar">
+    <div class="control-panel">
+      <button class="location-btn" onclick="locateUser()">
+        <span id="locate-text">📍 定位我的位置</span>
+      </button>
+
+      <div class="route-controls">
+        <h3 id="route-title">路线规划</h3>
+        <div class="route-input">
+          <input type="text" id="start-point" placeholder="起点（地址或点击地图）"/>
+          <input type="text" id="end-point" placeholder="终点（地址或点击地图）"/>
+        </div>
+        <div class="route-buttons">
+          <button class="btn-primary" onclick="calculateRoute()"><span id="calc-route">规划路线</span></button>
+          <button class="btn-danger" onclick="clearRoute()"><span id="clear-route">清除路线</span></button>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="搜索地点"/>
+      </div>
+    </div>
+
+    <h3 class="section-title" id="attractions-title">热门景点</h3>
+    <ul class="poi-list" id="poi-list">
+      <!-- POI items will be populated by JavaScript -->
+    </ul>
+
+    <div id="route-info" class="route-info">
+      <h4 id="route-info-title">路线信息</h4>
+      <div id="route-summary"></div>
+    </div>
+
+    <div class="instructions">
+      <h4 id="instructions-title">使用说明</h4>
+      <ul id="instructions-list">
+        <li>点击地图上的任意位置设置起点或终点</li>
+        <li>使用景点旁的按钮快速设置路线</li>
+        <li>点击"定位我的位置"在地图上显示您当前的位置</li>
+        <li>使用搜索框快速查找景点</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+<script type="module" src="/src/main.js"></script>
+
+</body>
+</html>
