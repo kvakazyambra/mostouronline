@@ -1,4 +1,5 @@
 import './style.scss'
+import landmarks from './points.json';
 
 
 // Language texts
@@ -92,7 +93,7 @@ let routes = null;
 let currentLang = 'zh';
 
 // Switch language function
-function switchLanguage(lang) {
+window.switchLanguage = function(lang) {
   currentLang = lang;
 
   // Update UI texts
@@ -107,11 +108,11 @@ function switchLanguage(lang) {
   routeInfoTitle.textContent = texts[lang].routeInfo;
   instructionsTitle.textContent = texts[lang].instructions;
 
-  if (!isNaN(startPointId)) {
+  if (startPointId && !isNaN(startPointId)) {
     startPointInput.value = landmarks[startPointId].name[currentLang];
   }
 
-  if (!isNaN(endPointId)) {
+  if (endPointId && !isNaN(endPointId)) {
     endPointInput.value = landmarks[endPointId].name[currentLang];
   }
 
@@ -146,118 +147,6 @@ const map = L.map('map').setView([55.7558, 37.6173], 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap贡献者'
 }).addTo(map);
-
-// 地标数据 - с двуязычными названиями
-const landmarks = [
-  {
-    lat: 55.752023,
-    lng: 37.617499,
-    name: {
-      ru: "Красная площадь",
-      zh: "红场",
-    },
-    description: {
-      ru: "Главная площадь Москвы, символ России",
-      zh: "莫斯科的主要广场，俄罗斯的象征",
-    }
-  },
-  {
-    lat: 55.710006,
-    lng: 37.553928,
-    name: {
-      ru: "Парк Горького",
-      zh: "高尔基公园",
-    },
-    description: {
-      ru: "Самый популярный парк отдыха в Москве",
-      zh: "莫斯科最受欢迎的休闲公园",
-    }
-  },
-  {
-    lat: 55.741510,
-    lng: 37.620656,
-    name: {
-      ru: "Храм Василия Блаженного",
-      zh: "圣瓦西里大教堂",
-    },
-    description: {
-      ru: "Знаменитый православный храм на Красной площади",
-      zh: "位于红场的标志性东正教教堂",
-    }
-  },
-  {
-    lat: 55.732044,
-    lng: 37.603869,
-    name: {
-      ru: "Московский Кремль",
-      zh: "莫斯科克里姆林宫",
-    },
-    description: {
-      ru: "Резиденция президента России и исторический архитектурный комплекс",
-      zh: "俄罗斯总统官邸和历史建筑群",
-    }
-  },
-  {
-    lat: 55.826479,
-    lng: 37.631325,
-    name: {
-      ru: "ВДНХ",
-      zh: "全俄展览中心",
-    },
-    description: {
-      ru: "Крупный выставочный центр и парк",
-      zh: "大型展览中心和公园",
-    }
-  },
-  {
-    lat: 55.703947,
-    lng: 37.528719,
-    name: {
-      ru: "МГУ",
-      zh: "莫斯科国立大学",
-    },
-    description: {
-      ru: "Старейший и крупнейший университет России",
-      zh: "俄罗斯最古老和最大的大学"
-    }
-  },
-  {
-    lat: 55.747907,
-    lng: 37.592215,
-    name: {
-      ru: "Арбат",
-      zh: "阿尔巴特街",
-    },
-    description: {
-      ru: "Знаменитая пешеходная улица и исторический район Москвы",
-      zh: "莫斯科著名的步行街和历史街区",
-    }
-  },
-  {
-    lat: 55.741551,
-    lng: 37.620854,
-    name: {
-      ru: "Третьяковская галерея",
-      zh: "特列季亚科夫画廊",
-    },
-    description: {
-      ru: "Крупнейший музей русского искусства",
-      zh: "俄罗斯艺术的最大博物馆",
-    }
-  },
-  {
-    lat: 55.760191,
-    lng: 37.618589,
-    name: {
-      ru: "Большой театр",
-      zh: "莫斯科大剧院",
-    },
-    description: {
-      ru: "Один из ведущих балетных и оперных театров мира",
-      zh: "世界领先的芭蕾舞和歌剧院之一",
-    }
-  }
-];
 
 const getPopupContent = (landmark, index) => {
   return `<div class="info-window">
@@ -373,7 +262,7 @@ function locateUser() {
 }
 
 // 设置起点
-function setAsStart(name, lat, lng, landmarkId) {
+window.setAsStart = function(name, lat, lng, landmarkId) {
   startPointInput.value = name;
   clickStartPoint = L.latLng(lat, lng);
 
@@ -398,7 +287,7 @@ function setAsStart(name, lat, lng, landmarkId) {
 }
 
 // 设置终点
-function setAsEnd(name, lat, lng, landmarkId) {
+window.setAsEnd = function(name, lat, lng, landmarkId) {
   endPointInput.value = name;
   clickEndPoint = L.latLng(lat, lng);
 
@@ -559,4 +448,13 @@ document.getElementById('search-input').addEventListener('input', function(e) {
       item.style.display = 'none';
     }
   });
+});
+
+
+calcRouteControl.addEventListener('click', () => {
+  calculateRoute();
+});
+
+clearRouteControl.addEventListener('click', () => {
+  clearRoute();
 });
