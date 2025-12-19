@@ -3,19 +3,17 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/x-icon" href="/public/favicon.ico"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png"/>
   <title>莫斯科互动地图 - Интерактивная карта Москвы</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
-  <style>
-  </style>
 </head>
 <body>
 <div id="header">
   <h1>莫斯科互动地图 - Интерактивная карта Москвы</h1>
   <p>探索俄罗斯首都的著名地标和景点 - Исследуйте достопримечательности столицы России</p>
   <div class="language-switcher">
-    <button class="lang-btn active" onclick="switchLanguage('zh')">中文</button>
-    <button class="lang-btn" onclick="switchLanguage('ru')">Русский</button>
+    <button class="lang-btn" data-lang="zh" onclick="switchLanguage('zh')">中文</button>
+    <button class="lang-btn" data-lang="ru" onclick="switchLanguage('ru')">Русский</button>
   </div>
 </div>
 
@@ -23,31 +21,48 @@
   <div id="map"></div>
   <div id="sidebar">
     <div class="control-panel">
-      <button class="location-btn" onclick="locateUser()">
+      <button class="location-btn" type="button" onclick="locateUser()">
         <span id="locate-text">📍 定位我的位置</span>
       </button>
 
-      <div class="route-controls">
+      <form class="route-controls js-form">
+        <div class="sharing">
+          <button class="sharing__toggler js-sharing-toggler" type="button">
+            <svg fill="#fff" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M15 30c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/><path d="M35 20c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/><path d="M35 40c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/><path d="M19.007 25.885l12.88 6.44-.895 1.788-12.88-6.44z"/><path d="M30.993 15.885l.894 1.79-12.88 6.438-.894-1.79z"/></svg>
+          </button>
+          <div class="sharing__content visually-hidden js-sharing">
+            <!-- ShareThis BEGIN -->
+            <div class="sharethis-inline-share-buttons"></div>
+            <!-- ShareThis END -->
+          </div>
+        </div>
+
         <h3 id="route-title">路线规划</h3>
+
         <div class="route-input">
-          <input type="text" id="start-point" placeholder="起点（地址或点击地图）"/>
-          <input type="text" id="end-point" placeholder="终点（地址或点击地图）"/>
+          <div class="route-input__item">
+            <div class="route-input__sort-handle"></div>
+            <input type="text" id="start-point" name="place" placeholder="起点（地址或点击地图）"/>
+            <button class="route-input__edit-control js-add-point" type="button">+</button>
+            <button class="route-input__edit-control js-remove-point" type="button">&minus;</button>
+          </div>
+          <div class="route-input__item">
+            <div class="route-input__sort-handle"></div>
+            <input type="text" id="end-point" name="place" placeholder="终点（地址或点击地图）"/>
+            <button class="route-input__edit-control js-add-point" type="button">+</button>
+            <button class="route-input__edit-control js-remove-point" type="button">&minus;</button>
+          </div>
         </div>
         <div class="route-buttons">
-          <button class="btn-primary" id="calc-route">规划路线</button>
-          <button class="btn-danger" id="clear-route">清除路线</button>
+          <button class="btn-primary" id="calc-route" type="button">规划路线</button>
+          <button class="btn-danger" id="clear-route" type="button">清除路线</button>
         </div>
-      </div>
+      </form>
 
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="搜索地点"/>
+      <div class="search-results js-search-results hidden">
+        <ul class="poi-list" id="poi-list"></ul>
       </div>
     </div>
-
-    <h3 class="section-title" id="attractions-title">热门景点</h3>
-    <ul class="poi-list" id="poi-list">
-      <!-- POI items will be populated by JavaScript -->
-    </ul>
 
     <div id="route-info" class="route-info">
       <h4 id="route-info-title">路线信息</h4>
@@ -66,10 +81,9 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-
 <script type="module" src="/src/main.js"></script>
+<script type='text/javascript' src='https://platform-api.sharethis.com/js/sharethis.js#property=6942c6174228c98edc7e91f1&product=inline-share-buttons' async='async'></script>
+
 
 </body>
 </html>

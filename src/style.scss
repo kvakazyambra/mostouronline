@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 * {
   margin: 0;
   padding: 0;
@@ -8,7 +10,10 @@ body {
   font-family: 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   background-color: #f5f7fa;
   color: #333;
+  display: flex;
+  flex-direction: column;
   line-height: 1.6;
+  height: 100vh;
 }
 
 #header {
@@ -34,11 +39,13 @@ body {
 
 #map-container {
   display: flex;
-  height: calc(100vh - 140px);
+  //height: calc(100vh - 140px);
+  flex: 0 100%;
   max-width: 1600px;
   margin: 0 auto;
   padding: 20px;
   gap: 20px;
+  width: 100%;
 }
 
 #map {
@@ -58,10 +65,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-}
-
-.control-panel {
-  margin-bottom: 24px;
+  position: relative;
 }
 
 .location-btn {
@@ -96,12 +100,12 @@ body {
   margin-bottom: 20px;
 
   h3 {
-    margin-top: 0;
+    border-bottom: 1px solid #e1e8ed;
     color: #2c3e50;
     font-size: 18px;
-    margin-bottom: 16px;
+    line-height: 1.4;
+    margin: 0 0 16px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #e1e8ed;
   }
 }
 
@@ -117,12 +121,46 @@ body {
     border-radius: 8px;
     font-size: 15px;
     transition: border 0.3s;
+    width: 100%;
 
     &:focus {
       border-color: #3498db;
       outline: none;
       box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
     }
+  }
+
+  &:has(> .route-input__item:nth-child(2):last-child) {
+    .js-remove-point {
+      cursor: default;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  }
+}
+
+.route-input__item {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.route-input__edit-control {
+  font-size: 1.5em;
+  font-weight: 200;
+  padding: 0 10px;
+}
+
+.route-input__sort-handle {
+  cursor: pointer;
+  margin: 0 -1em;
+  padding: 0 1em;
+
+  &:before {
+    content: '≡';
+    display: block;
+    font-size: 1.5em;
+    font-weight: 200;
   }
 }
 
@@ -187,8 +225,6 @@ button {
 }
 
 .search-box {
-  margin-bottom: 20px;
-
   input {
     width: 100%;
     padding: 12px 15px;
@@ -208,27 +244,26 @@ button {
 .section-title {
   font-size: 18px;
   color: #2c3e50;
-  margin-bottom: 16px;
+  margin: 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid #e1e8ed;
 }
 
 .poi-list {
   list-style: none;
   flex-grow: 1;
+  margin: 0 -1em;
   overflow-y: auto;
 }
 
 .poi-item {
-  padding: 16px;
-  border-bottom: 1px solid #edf2f7;
+  align-items: start;
+  border-top: 1px solid #edf2f7;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  margin: 0;
+  padding: 8px 1em;
   transition: background 0.2s;
-  border-radius: 8px;
-  margin-bottom: 8px;
 
   &:hover {
     background-color: #f1f8ff;
@@ -238,6 +273,7 @@ button {
 .poi-name {
   display: flex;
   flex-direction: column;
+  line-height: 1.4;
 }
 
 .name-ru {
@@ -249,20 +285,6 @@ button {
   font-size: 14px;
   color: #666;
   margin-top: 4px;
-}
-
-.poi-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.poi-action-btn {
-  padding: 8px 12px;
-  font-size: 13px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
 }
 
 .route-info {
@@ -345,7 +367,7 @@ button {
   background: #e8f4fd;
   padding: 15px;
   border-radius: 8px;
-  margin-top: 20px;
+  //margin-top: 20px;
   font-size: 14px;
   color: #2c3e50;
 
@@ -390,5 +412,73 @@ button {
 }
 
 .leaflet-bottom.leaflet-right {
-  display: none;
+  display: none !important;
+}
+
+.control-panel {
+  position: relative;
+}
+
+.search-results {
+  background: #fff;
+  border-radius: 1em;
+  box-shadow: 0 4px 8px color.adjust(#1a5276, $alpha: -0.4);
+  padding: 0 1em;
+  max-width: 100%;
+  overflow: hidden;
+  position: absolute;
+  top: 100%;
+  z-index: 10;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.visually-hidden {
+  left: -200vw;
+  position: absolute !important;
+  top: -200vh ;
+  visibility: hidden;
+}
+
+.sharing {
+  margin-top: -0.5em;
+  position: absolute;
+  right: 1em;
+}
+
+.sharing__toggler {
+  background: #1a5276;
+  padding: 0;
+
+  svg {
+    height: 28px;
+    width: 28px;
+  }
+}
+
+.sharing__content {
+  background: #fff;
+  box-shadow: 0 4px 8px color.adjust(#1a5276, $alpha: -0.4);
+  border-radius: 1rem;
+  padding: 1em;
+  position: absolute;
+  right: 0;
+  z-index: 10;
+
+  .sharethis-inline-share-buttons {
+    width: 100px;
+  }
+
+  #st-1.st-justified {
+    flex-direction: column;
+    gap: 10px;
+
+    .st-btn {
+      display: block !important;
+      flex: 0;
+      margin-right: 0;
+    }
+  }
 }

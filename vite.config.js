@@ -4,7 +4,19 @@ export default defineConfig({
   build: {
     outDir: 'dist', // Папка для результата сборки
     assetsDir: 'assets', // Директория для статичных ресурсов
-    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/leaflet/')) {
+            return 'leaflet';
+          } else if (id.includes('node_modules/leaflet-routing-machine/')) {
+            return 'leaflet-routing-machine';
+          } else if (id.includes('node_modules/leaflet-geosearch/')) {
+            return 'leaflet-geosearch';
+          }
+        }
+      }
+    }
   },
   css: {
     devSourcemap: true, // Включаем source maps для стилей в dev-режиме

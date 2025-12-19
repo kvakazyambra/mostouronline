@@ -1,8 +1,15 @@
-import './style.scss'
+import './style.scss';
 import landmarks from './points.json';
+import Sortable from 'sortablejs';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-routing-machine';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import 'leaflet-geosearch/dist/geosearch.css';
+import { SearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import iconUrl from '/node_modules/leaflet/dist/images/marker-icon.png';
+import iconShadow from '/node_modules/leaflet/dist/images/marker-shadow.png';
 
-
-// Language texts
 const texts = {
   zh: {
     locate: "📍 定位我的位置",
@@ -66,21 +73,26 @@ const locateText = document.getElementById('locate-text');
 const routeTitle = document.getElementById('route-title');
 const startPointInput = document.getElementById('start-point');
 const endPointInput = document.getElementById('end-point');
-const searchInput = document.getElementById('search-input');
 const calcRouteControl = document.getElementById('calc-route');
 const clearRouteControl = document.getElementById('clear-route');
-const attractionsTitle = document.getElementById('attractions-title');
 const routeInfo = document.getElementById('route-info');
 const routeInfoTitle = document.getElementById('route-info-title');
 const instructionsTitle = document.getElementById('instructions-title');
 const instructionsList = document.getElementById('instructions-list');
 const switchLangControls = document.querySelectorAll('.lang-btn');
 const poiList = document.getElementById('poi-list');
+const searchResults = document.querySelector('.js-search-results');
+const form = document.querySelector('.js-form');
+const pointsList = form.querySelector('.route-input');
 
-// 路由变量
+const sharing = document.querySelector('.js-sharing');
+const sharingToggler = document.querySelector('.js-sharing-toggler');
+
+let currentSearchInput = null;
+
 let routingControl = null;
 let userLocation = null;
-let startMarker = null;
+let customMarkers = [];
 let endMarker = null;
 let startPointId = null;
 let endPointId = null;
@@ -89,34 +101,81 @@ let clickEndPoint = null;
 
 let routes = null;
 
-// Current language
-let currentLang = 'zh';
+let currentLang = (new URLSearchParams(window.location.search.replace(/^\?/, ''))).get('lang');
 
-// Switch language function
+currentLang = currentLang ? currentLang : 'zh';
+
+const updateRouteInfo = () => {
+  if (routes) {
+    const summary = routes[0].summary;
+
+    const distance = (summary.totalDistance / 1000).toFixed(2);
+    const time = Math.round(summary.totalTime / 60);
+
+    routeSummary.innerHTML =
+        `<p><strong>${texts[currentLang].distance}:</strong> ${distance} ${texts[currentLang].km}</p>
+          <p><strong>${texts[currentLang].time}:</strong> ${time} ${texts[currentLang].min}</p>
+          <p><strong>${texts[currentLang].from}:</strong> ${startPointInput.value}</p>
+          <p><strong>${texts[currentLang].to}:</strong> ${endPointInput.value}</p>`;
+
+    routeInfo.classList.add('active');
+  } else {
+    routeInfo.classList.remove('active');
+  }
+};
+
+
+const changeHistory = () => {
+  const searchParamsObj =
+      new URLSearchParams(window.location.search.replace(/^\?/, ''));
+
+  let searchParams = '';
+
+  const searchLang = searchParamsObj.get('lang');
+
+  if (!searchLang) {
+    searchParams += `?lang=${currentLang}`;
+  }
+
+  searchParamsObj.forEach((val, key) => {
+    if (key !== 'place') {
+      searchParams += searchParams.length > 0 ? '&' : '?';
+      searchParams += `${key}=${key === 'lang' ? currentLang : val}`;
+    }
+  });
+
+  form.querySelectorAll('input[name=place]').forEach(item => {
+    if (item.lat) {
+      searchParams += `&place=${item.lat},${item.lng}`;
+    }
+  });
+
+  window.history.pushState(
+      null,
+      null,
+      window.location.origin + window.location.pathname + `${searchParams}`
+  );
+}
+
+
 window.switchLanguage = function(lang) {
   currentLang = lang;
 
-  // Update UI texts
   locateText.textContent = texts[lang].locate;
   routeTitle.textContent = texts[lang].routeTitle;
   startPointInput.placeholder = texts[lang].startPlaceholder;
   endPointInput.placeholder = texts[lang].endPlaceholder;
-  searchInput.placeholder = texts[lang].searchPlaceholder;
   calcRouteControl.textContent = texts[lang].calcRoute;
   clearRouteControl.textContent = texts[lang].clearRoute;
-  attractionsTitle.textContent = texts[lang].attractions;
   routeInfoTitle.textContent = texts[lang].routeInfo;
   instructionsTitle.textContent = texts[lang].instructions;
 
-  if (startPointId && !isNaN(startPointId)) {
-    startPointInput.value = landmarks[startPointId].name[currentLang];
-  }
+  form.querySelectorAll('input[name=place]').forEach(item => {
+    if (landmarks[item.markId]) {
+      item.value = landmarks[item.markId].name[currentLang];
+    }
+  });
 
-  if (endPointId && !isNaN(endPointId)) {
-    endPointInput.value = landmarks[endPointId].name[currentLang];
-  }
-
-  // Update instructions list
   instructionsList.innerHTML = '';
   texts[lang].instructionsList.forEach(item => {
     const li = document.createElement('li');
@@ -124,13 +183,10 @@ window.switchLanguage = function(lang) {
     instructionsList.appendChild(li);
   });
 
-  // Update language buttons
   switchLangControls.forEach(btn => {
-    btn.classList.remove('active');
+    btn.classList.toggle('active', btn.dataset.lang === currentLang);
   });
-  event.target.classList.add('active');
 
-  // Update POI list
   updatePOIList();
 
   landmarks.forEach((landmark, index) => {
@@ -138,40 +194,43 @@ window.switchLanguage = function(lang) {
   });
 
   updateRouteInfo();
+
+  changeHistory();
 }
 
-// 初始化地图
+
 const map = L.map('map').setView([55.7558, 37.6173], 11);
 
-// 添加OpenStreetMap图层
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap贡献者'
 }).addTo(map);
+
 
 const getPopupContent = (landmark, index) => {
   return `<div class="info-window">
          <h3>${landmark.name[currentLang]}</h3>
          <p>${landmark.description[currentLang]}</p>
-         <button onclick="setAsStart('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})"
-         style="background: #f39c12; color: white; border: none; padding: 6px 12px; margin-right: 5px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-         ${currentLang === 'zh' ? '设为起点' : 'Отсюда'}
-         </button>
-         <button onclick="setAsEnd('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})"
-         style="background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-         ${currentLang === 'zh' ? '设为终点' : 'Сюда'}
+         <button type="button" onclick="setPoint('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})"
+         style="background: #27ae60; color: white; border: none; padding: 6px 12px; margin-right: 5px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+         ${currentLang === 'zh' ? '添加航点' : 'Добавить точку'}
          </button>
          </div>`;
 };
 
 
-// 添加地标标记
 landmarks.forEach((landmark, index) => {
-  landmark.marker = L.marker([landmark.lat, landmark.lng]).addTo(map);
+  landmark.marker = L.marker([landmark.lat, landmark.lng], {
+    icon: L.icon({
+      iconUrl: iconUrl,
+      shadowUrl: iconShadow,
+      iconAnchor: [12.5, 41]
+    })
+  }).addTo(map);
   landmark.marker.bindPopup(getPopupContent(landmark, index));
 });
 
 
-// 更新POI列表
 function updatePOIList() {
   poiList.innerHTML = '';
 
@@ -182,24 +241,27 @@ function updatePOIList() {
         `<div class="poi-name">
           <div class="name-ru">${landmark.name.ru}</div>
           <div class="name-zh">${landmark.name.zh}</div>
-          </div>
-          <div class="poi-actions">
-          <button class="poi-action-btn btn-warning" onclick="setAsStart('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})">
-          ${currentLang === 'zh' ? '起点' : 'A'}
-          </button>
-          <button class="poi-action-btn btn-success" onclick="setAsEnd('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})">
-          ${currentLang === 'zh' ? '终点' : 'B'}
-          </button>
-          </div>`;
+        </div>`;
+
+    li.addEventListener('click', () => {
+      setPoint(
+          landmark.name[currentLang],
+          landmark.lat,
+          landmark.lng,
+          index,
+          currentSearchInput
+      );
+    });
+
     poiList.appendChild(li);
   });
 }
 
-// 初始化POI列表
+
 updatePOIList();
 
-// 定位用户位置
-function locateUser() {
+
+window.locateUser = function() {
   if (!navigator.geolocation) {
     alert(currentLang === 'zh' ? '您的浏览器不支持地理定位功能' : 'Ваш браузер не поддерживает геолокацию');
     return;
@@ -233,9 +295,17 @@ function locateUser() {
 
         // 提示设置为起点
         if (confirm(currentLang === 'zh' ? '是否将您的位置设置为路线起点？' : 'Установить ваше местоположение как точку отправления?')) {
-          setAsStart(currentLang === 'zh' ? '我的位置' : 'Мое местоположение', lat, lng);
+          setPoint(
+              currentLang === 'zh' ? '我的位置' : 'Мое местоположение',
+              lat,
+              lng,
+              null,
+              null,
+              true
+          );
         }
       },
+
       function(error) {
         let errorMessage = currentLang === 'zh' ? '无法获取您的位置：' : 'Не удалось определить местоположение: ';
         switch (error.code) {
@@ -255,26 +325,55 @@ function locateUser() {
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 30000,
         maximumAge: 60000
       }
   );
 }
 
-// 设置起点
-window.setAsStart = function(name, lat, lng, landmarkId) {
-  startPointInput.value = name;
-  clickStartPoint = L.latLng(lat, lng);
 
-  // 移除旧的起点标记
-  if (startMarker) {
-    map.removeLayer(startMarker);
+window.setPoint = function(name, lat, lng, landmarkId, input, isFirst = false) {
+  let currentInput = input;
+
+  if (!currentInput) {
+    if (!startPointInput.value) {
+      currentInput = startPointInput;
+    } else if (!endPointInput.value) {
+      currentInput = endPointInput;
+    } else {
+      if (isFirst) {
+        pointsList.insertAdjacentHTML('afterbegin', getRouteInputHTML());
+        currentInput = form.querySelector('input[name="place"]');
+      } else {
+        const addControls = form.querySelectorAll('.js-add-point');
+
+        addControls[addControls.length - 1].dispatchEvent(
+            new MouseEvent(
+                'click',
+                {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window
+                }
+            )
+        );
+
+        currentInput = addControls[addControls.length - 1].closest('.route-input__item').nextSibling.querySelector('input[name=place]');
+      }
+    }
   }
+
+  map.closePopup();
+
+  currentInput.value = name;
+  currentInput.markId = landmarkId;
+  currentInput.lat = lat;
+  currentInput.lng = lng;
+  clickStartPoint = L.latLng(lat, lng);
 
   startPointId = landmarkId;
 
-  // 添加新的起点标记
-  startMarker = L.marker([lat, lng], {
+  const newMarker = L.marker([lat, lng], {
     icon: L.icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -284,70 +383,42 @@ window.setAsStart = function(name, lat, lng, landmarkId) {
       shadowSize: [41, 41]
     })
   }).addTo(map).bindPopup(`${currentLang === 'zh' ? '起点: ' : 'Точка A: '}${name}`);
-}
 
-// 设置终点
-window.setAsEnd = function(name, lat, lng, landmarkId) {
-  endPointInput.value = name;
-  clickEndPoint = L.latLng(lat, lng);
-
-  // 移除旧的终点标记
-  if (endMarker) {
-    map.removeLayer(endMarker);
+  if (isFirst) {
+    customMarkers.unshift(newMarker);
+  } else {
+    customMarkers.push(newMarker);
   }
 
-  endPointId = landmarkId;
+  changeHistory();
+};
 
-  // 添加新的终点标记
-  endMarker = L.marker([lat, lng], {
-    icon: L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    })
-  }).addTo(map).bindPopup(`${currentLang === 'zh' ? '终点: ' : 'Точка B: '}${name}`);
-}
 
-// 计算路线
+const mapSearch = new SearchControl({
+  notFoundMessage: 'Sorry, that address could not be found.',
+  provider: new OpenStreetMapProvider(),
+  style: 'button',
+});
+
+map.addControl(mapSearch);
+
+
 function calculateRoute() {
-  const startInput = startPointInput.value;
-  const endInput = endPointInput.value;
-
-  let startPoint = clickStartPoint;
-  let endPoint = clickEndPoint;
-
-  // 如果未通过点击设置点，则按名称查找
-  if (!startPoint) {
-    const startLandmark = landmarks.find(l => l.name.ru === startInput || l.name.zh === startInput);
-    if (startLandmark) {
-      startPoint = L.latLng(startLandmark.lat, startLandmark.lng);
-    }
-  }
-
-  if (!endPoint) {
-    const endLandmark = landmarks.find(l => l.name.ru === endInput || l.name.zh === endInput);
-    if (endLandmark) {
-      endPoint = L.latLng(endLandmark.lat, endLandmark.lng);
-    }
-  }
-
-  if (!startPoint || !endPoint) {
-    alert(currentLang === 'zh' ? '请设置起点和终点' : 'Пожалуйста, установите точки отправления и назначения');
-    return;
-  }
-
-  // 清除之前的路线
   if (routingControl) {
     map.removeControl(routingControl);
   }
 
-  // 创建新路线
+  let points = [];
+
+  form.querySelectorAll('input[name=place]').forEach(item => {
+    if (item.lat) {
+      points.push([item.lat, item.lng]);
+    }
+  });
+
   routingControl = L.Routing.control({
     language: currentLang === 'zh' ? 'en' : currentLang,
-    waypoints: [startPoint, endPoint],
+    waypoints: points,
     routeWhileDragging: false,
     showAlternatives: false,
     lineOptions: {
@@ -355,36 +426,16 @@ function calculateRoute() {
     },
     createMarker: function() {
       return null;
-    } // 不创建默认标记
+    }
   }).addTo(map);
 
-  // 路线计算完成处理
   routingControl.on('routesfound', function(e) {
     routes = e.routes;
     updateRouteInfo();
   });
 }
 
-const updateRouteInfo = () => {
-  if (routes) {
-    const summary = routes[0].summary;
 
-    const distance = (summary.totalDistance / 1000).toFixed(2);
-    const time = Math.round(summary.totalTime / 60);
-
-    routeSummary.innerHTML =
-        `<p><strong>${texts[currentLang].distance}:</strong> ${distance} ${texts[currentLang].km}</p>
-          <p><strong>${texts[currentLang].time}:</strong> ${time} ${texts[currentLang].min}</p>
-          <p><strong>${texts[currentLang].from}:</strong> ${startPointInput.value}</p>
-          <p><strong>${texts[currentLang].to}:</strong> ${endPointInput.value}</p>`;
-
-    routeInfo.classList.add('active');
-  } else {
-    routeInfo.classList.remove('active');
-  }
-};
-
-// 清除路线
 function clearRoute() {
   if (routingControl) {
     map.removeControl(routingControl);
@@ -397,64 +448,183 @@ function clearRoute() {
 
   clickStartPoint = null;
   clickEndPoint = null;
-  startMarker = null;
   endMarker = null;
   startPointId = null;
   endPointId = null;
 
-  if (startMarker) {
-    map.removeLayer(startMarker);
+  if (customMarkers.length) {
+    customMarkers.forEach(marker => {
+      map.removeLayer(marker);
+    });
   }
+
+  customMarkers = [];
 
   if (endMarker) {
     map.removeLayer(endMarker);
   }
+
+  pointsList.querySelectorAll('.route-input__item').forEach(item => {
+    if (!item.querySelector('#start-point') && !item.querySelector('#end-point')) {
+      item.remove();
+    }
+  });
 }
 
-// 地图点击事件处理
+
 map.on('click', function(e) {
   const latlng = e.latlng;
 
-  if (confirm(currentLang === 'zh' ? '设置此位置为:' : 'Установить эту точку как:')) {
-    const choice = prompt(currentLang === 'zh' ? '请选择:\n1 - 起点\n2 - 终点' : 'Выберите:\n1 - Точка отправления (A)\n2 - Точка назначения (B)');
-
-    if (choice === '1') {
-      setAsStart(
-          `${currentLang === 'zh' ? '地图位置' : 'Точка на карте'} (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`,
-          latlng.lat,
-          latlng.lng
-      );
-    } else if (choice === '2') {
-      setAsEnd(
-          `${currentLang === 'zh' ? '地图位置' : 'Точка на карте'} (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`,
-          latlng.lat,
-          latlng.lng
-      );
-    }
-  }
+  setPoint(
+      `${currentLang === 'zh' ? '地图位置' : 'Точка на карте'} (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`,
+      latlng.lat,
+      latlng.lng,
+      null
+  );
 });
 
-// 搜索功能
-document.getElementById('search-input').addEventListener('input', function(e) {
-  const searchTerm = e.target.value.toLowerCase();
+
+const search = (searchControl) => {
+  const searchTerm = searchControl.value.toLowerCase();
   const items = document.querySelectorAll('.poi-item');
 
   items.forEach(item => {
     const ruText = item.querySelector('.name-ru').textContent.toLowerCase();
     const zhText = item.querySelector('.name-zh').textContent.toLowerCase();
-    if (ruText.includes(searchTerm) || zhText.includes(searchTerm)) {
-      item.style.display = 'flex';
-    } else {
-      item.style.display = 'none';
-    }
+
+    item.classList.toggle('hidden', !ruText.includes(searchTerm) && !zhText.includes(searchTerm));
   });
-});
+
+  const isOpened = Array.from(items).some(item => item.classList.length === 1);
+
+  searchResults.style.top = `${searchControl.offsetTop + searchControl.offsetHeight}px`;
+  searchResults.classList.toggle('hidden', !isOpened);
+
+  if (isOpened) {
+    document.addEventListener('keydown', onDocumentKeyDown);
+    document.addEventListener('click', onDocumentClick);
+  }
+};
+
+
+const closeShare = () => {
+  sharing.classList.add('visually-hidden');
+};
+
+const closeSearchResults = () => {
+  searchResults.classList.add('hidden');
+  document.removeEventListener('keydown', onDocumentKeyDown);
+  document.removeEventListener('click', onDocumentClick);
+};
+
+
+const onDocumentKeyDown = (evt) => {
+  if (evt.key && evt.key.toLowerCase() === 'escape') {
+    closeSearchResults();
+    closeShare();
+  }
+};
+
+
+const onDocumentClick = () => {
+  closeSearchResults();
+  closeShare();
+};
 
 
 calcRouteControl.addEventListener('click', () => {
   calculateRoute();
 });
 
+
 clearRouteControl.addEventListener('click', () => {
   clearRoute();
+});
+
+
+form.addEventListener('input', (evt) => {
+  currentSearchInput = evt.target;
+
+  if (currentSearchInput.value.trim().length > 0) {
+    search(currentSearchInput);
+  } else {
+    currentSearchInput.markId = null;
+  }
+});
+
+
+const getRouteInputHTML = () => `<div class="route-input__item">
+    <div class="route-input__sort-handle"></div>
+    <input type="text" name="place" placeholder="起点（地址或点击地图）"/>
+    <button class="route-input__edit-control js-add-point" type="button">+</button>
+    <button class="route-input__edit-control js-remove-point" type="button">&minus;</button>
+  </div>`;
+
+
+form.addEventListener('click', (evt) => {
+  const button = evt.target;
+  const parent = button.closest('.route-input__item');
+
+  if (button.classList.contains('js-add-point')) {
+    parent.insertAdjacentHTML('afterend', getRouteInputHTML());
+  } else if (button.classList.contains('js-remove-point')) {
+    parent.remove();
+    changeHistory();
+  }
+});
+
+
+sharingToggler.addEventListener('click', (evt) => {
+  evt.stopPropagation();
+  sharing.classList.toggle('visually-hidden');
+
+  if (!sharing.classList.contains('visually-hidden')) {
+    document.addEventListener('keydown', onDocumentKeyDown);
+    document.addEventListener('click', onDocumentClick);
+  }
+});
+
+
+new Sortable(pointsList, {
+  animation: 150,
+  ghostClass: 'blue-background-class',
+  draggable: '.route-input__item',
+  handle: '.route-input__sort-handle',
+  onUpdate: function() {
+    changeHistory();
+  }
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const searchParamsObj =
+      new URLSearchParams(window.location.search.replace(/^\?/, ''));
+
+  const placeParams = searchParamsObj.getAll('place');
+
+  placeParams.forEach(item => {
+    const coords = item.split(',');
+    let landmarkId = null;
+
+    const point = landmarks.find((mark, index) => {
+      const result = mark.lat.toString() === coords[0] && mark.lng.toString() === coords[1];
+
+      landmarkId = result ? index : null;
+
+      return result;
+    });
+
+    setPoint(
+        point ? point.name[currentLang] : `${currentLang === 'zh' ? '地图位置' : 'Точка на карте'} (${coords[0]}, ${coords[1]})`,
+        coords[0],
+        coords[1],
+        landmarkId
+    );
+  });
+
+  switchLanguage(currentLang);
+
+  if (placeParams.length > 1) {
+    calculateRoute();
+  }
 });
