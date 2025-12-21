@@ -36,7 +36,9 @@ const texts = {
     min: "分钟",
     yourLocation: "您的位置",
     setAsStart: "设为起点",
-    setAsEnd: "设为终点"
+    setAsEnd: "设为终点",
+    shareRouteControl: '分享路线链接',
+    metaDescription: '探索俄罗斯首都的著名地标和景点'
   },
   ru: {
     locate: "📍 Определить мое местоположение",
@@ -63,7 +65,9 @@ const texts = {
     min: "минут",
     yourLocation: "Ваше местоположение",
     setAsStart: "Отсюда",
-    setAsEnd: "Сюда"
+    setAsEnd: "Сюда",
+    shareRouteControl: 'Поделиться ссылкой на маршрут',
+    metaDescription: 'Исследуйте достопримечательности столицы России'
   }
 };
 
@@ -84,9 +88,17 @@ const poiList = document.getElementById('poi-list');
 const searchResults = document.querySelector('.js-search-results');
 const form = document.querySelector('.js-form');
 const pointsList = form.querySelector('.route-input');
+const locationControl = document.querySelector('.js-location-control');
+const metaDescription = document.querySelector('meta[name="description"]');
 
 const sharing = document.querySelector('.js-sharing');
 const sharingToggler = document.querySelector('.js-sharing-toggler');
+
+const popup = document.querySelector('.js-popup');
+const popupCloser = popup.querySelector('.js-popup-close');
+const popupContent = popup.querySelector('.js-popup-content');
+
+const body = document.querySelector('body');
 
 let currentSearchInput = null;
 
@@ -158,7 +170,7 @@ const changeHistory = () => {
 }
 
 
-window.switchLanguage = function(lang) {
+const switchLanguage = (lang) => {
   currentLang = lang;
 
   locateText.textContent = texts[lang].locate;
@@ -169,6 +181,8 @@ window.switchLanguage = function(lang) {
   clearRouteControl.textContent = texts[lang].clearRoute;
   routeInfoTitle.textContent = texts[lang].routeInfo;
   instructionsTitle.textContent = texts[lang].instructions;
+  sharingToggler.setAttribute('aria-label', texts[lang].shareRouteControl);
+  metaDescription.setAttribute('content', texts[lang].metaDescription);
 
   form.querySelectorAll('input[name=place]').forEach(item => {
     if (landmarks[item.markId]) {
@@ -184,7 +198,10 @@ window.switchLanguage = function(lang) {
   });
 
   switchLangControls.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lang === currentLang);
+    btn.addEventListener('click', () => {
+      switchLanguage(btn.dataset.lang);
+      btn.classList.toggle('active', btn.dataset.lang === currentLang);
+    });
   });
 
   updatePOIList();
@@ -211,6 +228,7 @@ const getPopupContent = (landmark, index) => {
   return `<div class="info-window">
          <h3>${landmark.name[currentLang]}</h3>
          <p>${landmark.description[currentLang]}</p>
+         ${landmark.article ? `<p><span class="pseudo-link js-show-article" data-id="${index}">Подробнее</span></p>` : ''}
          <button type="button" onclick="setPoint('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})"
          style="background: #27ae60; color: white; border: none; padding: 6px 12px; margin-right: 5px; border-radius: 4px; cursor: pointer; font-size: 13px;">
          ${currentLang === 'zh' ? '添加航点' : 'Добавить точку'}
@@ -261,13 +279,13 @@ function updatePOIList() {
 updatePOIList();
 
 
-window.locateUser = function() {
-  if (!navigator.geolocation) {
-    alert(currentLang === 'zh' ? '您的浏览器不支持地理定位功能' : 'Ваш браузер не поддерживает геолокацию');
+const locateUser = () => {
+  if (!window.navigator.geolocation) {
+    window.alert(currentLang === 'zh' ? '您的浏览器不支持地理定位功能' : 'Ваш браузер не поддерживает геолокацию');
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(
+  window.navigator.geolocation.getCurrentPosition(
       function(position) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
@@ -321,7 +339,7 @@ window.locateUser = function() {
           default:
             errorMessage += currentLang === 'zh' ? '发生未知错误' : 'Неизвестная ошибка';
         }
-        alert(errorMessage);
+        window.alert(errorMessage);
       },
       {
         enableHighAccuracy: true,
@@ -330,6 +348,14 @@ window.locateUser = function() {
       }
   );
 }
+
+
+const getRouteInputHTML = () => `<div class="route-input__item">
+    <div class="route-input__sort-handle"></div>
+    <input type="text" name="place" placeholder="起点（地址或点击地图）"/>
+    <button class="route-input__edit-control js-add-point" type="button">+</button>
+    <button class="route-input__edit-control js-remove-point" type="button">&minus;</button>
+  </div>`;
 
 
 window.setPoint = function(name, lat, lng, landmarkId, input, isFirst = false) {
@@ -518,10 +544,17 @@ const closeSearchResults = () => {
 };
 
 
+const closePopup = () => {
+  popup.classList.add('hidden');
+  body.classList.remove('fixed');
+};
+
+
 const onDocumentKeyDown = (evt) => {
   if (evt.key && evt.key.toLowerCase() === 'escape') {
     closeSearchResults();
     closeShare();
+    closePopup();
   }
 };
 
@@ -551,14 +584,6 @@ form.addEventListener('input', (evt) => {
     currentSearchInput.markId = null;
   }
 });
-
-
-const getRouteInputHTML = () => `<div class="route-input__item">
-    <div class="route-input__sort-handle"></div>
-    <input type="text" name="place" placeholder="起点（地址或点击地图）"/>
-    <button class="route-input__edit-control js-add-point" type="button">+</button>
-    <button class="route-input__edit-control js-remove-point" type="button">&minus;</button>
-  </div>`;
 
 
 form.addEventListener('click', (evt) => {
@@ -626,5 +651,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (placeParams.length > 1) {
     calculateRoute();
+  }
+});
+
+
+locationControl.addEventListener('click', () => {
+  locateUser();
+});
+
+
+popupCloser.addEventListener('click', () => {
+  popup.classList.add('hidden');
+  body.classList.remove('fixed');
+  document.removeEventListener('keydown', onDocumentKeyDown);
+});
+
+
+document.querySelector('#map').addEventListener('click', (evt) => {
+  if(evt.target.classList.contains('js-show-article')) {
+    const point = landmarks[parseInt(evt.target.dataset.id, 10)];
+
+    popupContent.innerHTML = `<h2>${point.name[currentLang]}</h2>${point.article[currentLang]}`;
+
+    body.classList.add('fixed');
+    popup.classList.remove('hidden');
+
+    document.addEventListener('keydown', onDocumentKeyDown);
   }
 });

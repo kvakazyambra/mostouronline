@@ -6,14 +6,15 @@
   <link rel="icon" type="image/x-icon" href="/public/favicon.ico"/>
   <link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png"/>
   <title>莫斯科互动地图 - Интерактивная карта Москвы</title>
+  <meta name="description" content="探索俄罗斯首都的著名地标和景点"/>
 </head>
 <body>
 <div id="header">
   <h1>莫斯科互动地图 - Интерактивная карта Москвы</h1>
   <p>探索俄罗斯首都的著名地标和景点 - Исследуйте достопримечательности столицы России</p>
   <div class="language-switcher">
-    <button class="lang-btn" data-lang="zh" onclick="switchLanguage('zh')">中文</button>
-    <button class="lang-btn" data-lang="ru" onclick="switchLanguage('ru')">Русский</button>
+    <button class="lang-btn" data-lang="zh" type="button">中文</button>
+    <button class="lang-btn" data-lang="ru" type="button">Русский</button>
   </div>
 </div>
 
@@ -21,13 +22,13 @@
   <div id="map"></div>
   <div id="sidebar">
     <div class="control-panel">
-      <button class="location-btn" type="button" onclick="locateUser()">
+      <button class="location-btn js-location-control" type="button">
         <span id="locate-text">📍 定位我的位置</span>
       </button>
 
-      <form class="route-controls js-form">
+      <form class="route-controls js-form" action=".">
         <div class="sharing">
-          <button class="sharing__toggler js-sharing-toggler" type="button">
+          <button class="sharing__toggler js-sharing-toggler" type="button" aria-label="分享路线链接">
             <svg fill="#fff" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M15 30c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/><path d="M35 20c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/><path d="M35 40c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z"/><path d="M19.007 25.885l12.88 6.44-.895 1.788-12.88-6.44z"/><path d="M30.993 15.885l.894 1.79-12.88 6.438-.894-1.79z"/></svg>
           </button>
           <div class="sharing__content visually-hidden js-sharing">
@@ -37,7 +38,7 @@
           </div>
         </div>
 
-        <h3 id="route-title">路线规划</h3>
+        <h2 id="route-title">路线规划</h2>
 
         <div class="route-input">
           <div class="route-input__item">
@@ -65,12 +66,12 @@
     </div>
 
     <div id="route-info" class="route-info">
-      <h4 id="route-info-title">路线信息</h4>
+      <h3 id="route-info-title">路线信息</h3>
       <div id="route-summary"></div>
     </div>
 
     <div class="instructions">
-      <h4 id="instructions-title">使用说明</h4>
+      <h3 id="instructions-title">使用说明</h3>
       <ul id="instructions-list">
         <li>点击地图上的任意位置设置起点或终点</li>
         <li>使用景点旁的按钮快速设置路线</li>
@@ -81,8 +82,19 @@
   </div>
 </div>
 
+<div class="popup hidden js-popup">
+  <div class="popup__wrapper">
+    <div class="popup__content js-popup-content"></div>
+    <button type="button" class="popup__close js-popup-close">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z" fill="#0F1729"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
 <script type="module" src="/src/main.js"></script>
-<script type='text/javascript' src='https://platform-api.sharethis.com/js/sharethis.js#property=6942c6174228c98edc7e91f1&product=inline-share-buttons' async='async'></script>
+<!--<script type='text/javascript' src='https://platform-api.sharethis.com/js/sharethis.js#property=6942c6174228c98edc7e91f1&product=inline-share-buttons' async='async'></script>-->
 
 
 </body>

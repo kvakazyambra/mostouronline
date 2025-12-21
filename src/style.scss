@@ -1,5 +1,7 @@
 @use 'sass:color';
 
+@use './popup';
+
 * {
   margin: 0;
   padding: 0;
@@ -14,6 +16,13 @@ body {
   flex-direction: column;
   line-height: 1.6;
   height: 100vh;
+  width: 100%;
+
+  &.fixed {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+  }
 }
 
 #header {
@@ -99,7 +108,7 @@ body {
   border: 1px solid #e1e8ed;
   margin-bottom: 20px;
 
-  h3 {
+  h2 {
     border-bottom: 1px solid #e1e8ed;
     color: #2c3e50;
     font-size: 18px;
@@ -300,7 +309,7 @@ button {
     animation: fadeIn 0.5s ease;
   }
 
-  h4 {
+  h3 {
     margin-top: 0;
     color: #2c3e50;
     font-size: 17px;
@@ -371,9 +380,10 @@ button {
   font-size: 14px;
   color: #2c3e50;
 
-  h4 {
-    margin-bottom: 10px;
+  h3 {
     color: #2980b9;
+    font-size: 14px;
+    margin-bottom: 10px;
   }
 
   ul {
@@ -480,5 +490,16 @@ button {
       flex: 0;
       margin-right: 0;
     }
+  }
+}
+
+.pseudo-link {
+  color: #3498db;
+  cursor: pointer;
+  text-decoration: underline dotted color.adjust(#3498db, $alpha: -0.4);
+
+  &:hover {
+    color: #e74c3c;
+    text-decoration-color: color.adjust(#e74c3c, $alpha: -0.4);
   }
 }
