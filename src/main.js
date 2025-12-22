@@ -228,7 +228,7 @@ const getPopupContent = (landmark, index) => {
   return `<div class="info-window">
          <h3>${landmark.name[currentLang]}</h3>
          <p>${landmark.description[currentLang]}</p>
-         ${landmark.article ? `<p><span class="pseudo-link js-show-article" data-id="${index}">Подробнее</span></p>` : ''}
+         ${landmark.article?.[currentLang] ? `<p><span class="pseudo-link js-show-article" data-id="${index}">Подробнее</span></p>` : ''}
          <button type="button" onclick="setPoint('${landmark.name[currentLang]}', ${landmark.lat}, ${landmark.lng}, ${index})"
          style="background: #27ae60; color: white; border: none; padding: 6px 12px; margin-right: 5px; border-radius: 4px; cursor: pointer; font-size: 13px;">
          ${currentLang === 'zh' ? '添加航点' : 'Добавить точку'}

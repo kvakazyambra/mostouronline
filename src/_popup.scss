@@ -17,30 +17,42 @@
   opacity: 1;
   padding: 0;
   position: absolute;
-  right: 1em;
-  top: 1em;
+  right: 10px;
+  top: 10px;
   transition: opacity 0.3s;
-  width: 48px;
+  width: 32px;
   z-index: 1;
 
   &:hover {
     opacity: 0.6;
   }
+
+  @media screen and (min-width: 768px) {
+    width: 48px;
+  }
 }
 
 .popup__wrapper {
   background: #fff;
-  border-radius: 2em;
   display: flex;
   margin: 0 auto;
-  max-height: 90vh;
+  max-height: 100vh;
   max-width: 1200px;
-  padding: 2em;
+  padding: 1em;
   position: relative;
-  width: 90vw;
+  width: 100%;
+
+  @media screen and (min-width: 768px) {
+    border-radius: 2em;
+    max-height: 90vh;
+    max-width: 1200px;
+    padding: 2em;
+    width: 90vw;
+  }
 }
 
 .popup__content {
+  padding-right: 25px;
   overflow: auto;
 
   h2 {
