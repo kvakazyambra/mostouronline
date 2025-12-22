@@ -113,6 +113,8 @@ let clickEndPoint = null;
 
 let routes = null;
 
+let userLocationMarker = null;
+
 let currentLang = (new URLSearchParams(window.location.search.replace(/^\?/, ''))).get('lang');
 
 currentLang = currentLang ? currentLang : 'zh';
@@ -293,12 +295,12 @@ const locateUser = () => {
         userLocation = L.latLng(lat, lng);
 
         // 移除旧的位置标记
-        if (window.userLocationMarker) {
-          map.removeLayer(window.userLocationMarker);
+        if (userLocationMarker) {
+          map.removeLayer(userLocationMarker);
         }
 
         // 添加新的位置标记
-        window.userLocationMarker = L.marker([lat, lng], {
+        userLocationMarker = L.marker([lat, lng], {
           icon: L.divIcon({
             className: 'location-marker',
             iconSize: [20, 20]
@@ -491,10 +493,19 @@ function clearRoute() {
   }
 
   pointsList.querySelectorAll('.route-input__item').forEach(item => {
-    if (!item.querySelector('#start-point') && !item.querySelector('#end-point')) {
+    const input = item.querySelector('input[name=place]');
+
+    if (input.id !== '#start-point' && input.id !== '#end-point') {
       item.remove();
     }
+
+    input.lat = null;
+    input.lng = null;
   });
+
+  form.reset();
+
+  changeHistory();
 }
 
 
@@ -679,3 +690,22 @@ document.querySelector('#map').addEventListener('click', (evt) => {
     document.addEventListener('keydown', onDocumentKeyDown);
   }
 });
+
+// Функция обновления местоположения
+const updateLocation = (position) => {
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
+
+  // Обновляем координаты маркера
+  userLocationMarker?.setLatLng([lat, lon]);
+
+  // Автоматически перемещаем карту на текущие координаты
+  map.setView([lat, lon], 13);
+}
+
+// Получение местоположения пользователя
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(updateLocation, (err) => {
+    window.console.error('Ошибка получения геолокации:', err);
+  });
+}
