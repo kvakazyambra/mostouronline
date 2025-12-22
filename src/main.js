@@ -115,6 +115,8 @@ let routes = null;
 
 let userLocationMarker = null;
 
+let scrollTop = 0;
+
 let currentLang = (new URLSearchParams(window.location.search.replace(/^\?/, ''))).get('lang');
 
 currentLang = currentLang ? currentLang : 'zh';
@@ -431,6 +433,12 @@ const mapSearch = new SearchControl({
 map.addControl(mapSearch);
 
 
+// Initialize the OSRM router with the 'walking' profile
+let walkingRouter = new L.Routing.OSRMv1({
+  // serviceUrl: serviceUrl,
+  profile: 'cycling' // Specify the profile here
+});
+
 function calculateRoute() {
   if (routingControl) {
     map.removeControl(routingControl);
@@ -447,7 +455,8 @@ function calculateRoute() {
   routingControl = L.Routing.control({
     language: currentLang === 'zh' ? 'en' : currentLang,
     waypoints: points,
-    routeWhileDragging: false,
+    // router: walkingRouter,
+    routeWhileDragging: true,
     showAlternatives: false,
     lineOptions: {
       styles: [{color: '#3498db', weight: 6}]
@@ -463,8 +472,45 @@ function calculateRoute() {
   });
 }
 
+/*
+// Функция для изменения маршрута в зависимости от типа
+window.changeRoute = function (mode) {
+  // Удаляем старый маршрут
+  // routingControl.setWaypoints(waypoints);
 
-function clearRoute() {
+  // Определяем опции маршрута
+  const routeOptions = {};
+
+  walkingRouter = new L.Routing.OSRMv1({
+    profile: mode
+  });
+
+  // routingControl.setOptions(routeOptions);
+}
+*/
+
+/*
+// Добавляем кнопки для выбора типа маршрута
+const buttons = L.control({ position: 'topright' });
+buttons.onAdd = function(map) {
+  const div = L.DomUtil.create('div', 'leaflet-bar');
+  div.innerHTML = `
+        <button onclick="changeRoute('walking')">Пеший</button>
+        <button onclick="changeRoute('cycling')">Велосипед</button>
+        <button onclick="changeRoute('driving')">Автомобиль</button>
+      `;
+
+  div.addEventListener('click', (evt) => {
+    evt.stopPropagation();
+  });
+
+  return div;
+};
+buttons.addTo(map);
+*/
+
+
+const clearRoute = () => {
   if (routingControl) {
     map.removeControl(routingControl);
     routingControl = null;
@@ -495,7 +541,7 @@ function clearRoute() {
   pointsList.querySelectorAll('.route-input__item').forEach(item => {
     const input = item.querySelector('input[name=place]');
 
-    if (input.id !== '#start-point' && input.id !== '#end-point') {
+    if (input.id !== 'start-point' && input.id !== 'end-point') {
       item.remove();
     }
 
@@ -681,11 +727,14 @@ popupCloser.addEventListener('click', () => {
 document.querySelector('#map').addEventListener('click', (evt) => {
   if(evt.target.classList.contains('js-show-article')) {
     const point = landmarks[parseInt(evt.target.dataset.id, 10)];
+    scrollTop = window.scrollY;
 
     popupContent.innerHTML = `<h2>${point.name[currentLang]}</h2>${point.article[currentLang]}`;
 
     body.classList.add('fixed');
     popup.classList.remove('hidden');
+
+    window.scrollTo({top: scrollTop});
 
     document.addEventListener('keydown', onDocumentKeyDown);
   }

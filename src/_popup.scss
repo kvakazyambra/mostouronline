@@ -27,7 +27,7 @@
     opacity: 0.6;
   }
 
-  @media screen and (min-width: 768px) {
+  @media screen and (min-width: 640px) {
     width: 48px;
   }
 }
@@ -35,15 +35,17 @@
 .popup__wrapper {
   background: #fff;
   display: flex;
+  height: 100%;
   margin: 0 auto;
   max-height: 100vh;
-  max-width: 1200px;
+  max-width: 900px;
   padding: 1em;
   position: relative;
   width: 100%;
 
   @media screen and (min-width: 768px) {
     border-radius: 2em;
+    height: auto;
     max-height: 90vh;
     max-width: 1200px;
     padding: 2em;
